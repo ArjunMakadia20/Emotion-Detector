@@ -49,7 +49,7 @@ def load_dataset(path):
 def build_pipeline(classifier):
     """TF-IDF (unigrams + bigrams) feeding the given classifier."""
     return Pipeline([
-        ("tfidf", TfidfVectorizer(ngram_range=(1, 2), min_df=1, sublinear_tf=True)),
+        ("tfidf", TfidfVectorizer(ngram_range=(1, 1), min_df=1, sublinear_tf=True)),
         ("clf", classifier),
     ])
 

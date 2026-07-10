@@ -28,6 +28,7 @@ unit-test suite, and a graceful offline fallback for when the Watson endpoint ca
 - [API Reference](#api-reference)
 - [Testing](#testing)
 - [Screenshots](#screenshots)
+- [Bonus: Custom ML Classifier](#bonus-custom-ml-classifier)
 - [What I Learned](#what-i-learned)
 - [License](#license)
 
@@ -80,6 +81,7 @@ access to the hosted Watson service.
 | Web framework    | Flask                                                  |
 | HTTP client      | `requests`                                             |
 | Emotion analysis | IBM Watson NLP — EmotionPredict API                    |
+| Custom ML (bonus)| scikit-learn — TF-IDF + LogisticRegression / MultinomialNB |
 | Front end        | HTML + vanilla JavaScript (`XMLHttpRequest`)           |
 | Testing          | `unittest` (Python standard library)                   |
 
@@ -92,6 +94,11 @@ EmotionDetection/
 ├── EmotionDetection/           # The emotion-detection package
 │   ├── __init__.py             # Exposes emotion_detector()
 │   └── emotion_detection.py    # Watson NLP call, parsing, scoring, fallback
+├── ml_classifier/              # Bonus: custom scikit-learn classifier
+│   ├── emotion_dataset.csv     # 376 self-authored labeled examples
+│   ├── train_classifier.py     # Trains, evaluates, and saves the model
+│   ├── predict.py              # predict_emotion(text) inference helper
+│   └── emotion_classifier.pkl  # Trained model (joblib)
 ├── static/
 │   └── mywebscript.js          # Front-end request logic
 ├── templates/
@@ -224,6 +231,103 @@ Expected result: **5 tests, all passing.**
 
 ---
 
+## Bonus: Custom ML Classifier
+
+Alongside the Watson NLP integration, the `ml_classifier/` folder contains a small emotion
+classifier I built and trained from scratch with **scikit-learn**. It's positioned as a
+*comparison and complement* to the Watson API — a way to see how a simple, self-trained model
+stacks up against a hosted commercial NLP service — **not** a replacement for it. The Watson
+integration in `emotion_detection.py` and `server.py` is untouched.
+
+The model is a scikit-learn `Pipeline` of `TfidfVectorizer` → classifier. Training fits both
+**LogisticRegression** and **MultinomialNB**, compares their held-out accuracy, and keeps the
+better one (defaulting to LogisticRegression unless Naive Bayes is clearly ahead). The saved
+pipeline is loaded by `predict.py`, whose `predict_emotion()` returns per-class probabilities
+plus a `dominant_emotion` key — deliberately the same shape as the Watson output, so the two
+can be compared side by side.
+
+### Dataset
+
+The classifier is trained on **376 self-authored short text examples**, roughly balanced across
+the five emotions (~75 per class). I wrote every example by hand — **no external dataset was
+used**, to keep it licensing-clean — mixing explicit emotion-vocabulary sentences (*"I am so
+angry that I can barely think straight"*) with more subtle or ambiguous ones (*"The floor
+creaked and my whole body tensed up"*) so the model has to learn real patterns rather than a
+single keyword per class.
+
+### Results
+
+On a stratified 80/20 split (300 train / 76 test), the selected **LogisticRegression** model
+achieved the following on the held-out test set:
+
+**Accuracy: 0.75** (LogisticRegression; MultinomialNB scored 0.737 on the same split.)
+
+| Emotion   | Precision | Recall | F1-score | Support |
+| --------- | :-------: | :----: | :------: | :-----: |
+| anger     |   0.71    |  0.67  |   0.69   |   15    |
+| disgust   |   0.82    |  0.88  |   0.85   |   16    |
+| fear      |   0.85    |  0.73  |   0.79   |   15    |
+| joy       |   0.82    |  0.60  |   0.69   |   15    |
+| sadness   |   0.62    |  0.87  |   0.72   |   15    |
+| **accuracy** |        |        | **0.75** |   76    |
+| macro avg |   0.76    |  0.75  |   0.75   |   76    |
+| weighted avg | 0.77    |  0.75  |   0.75   |   76    |
+
+Confusion matrix (rows = true label, columns = predicted):
+
+```
+              anger  disgust  fear  joy  sadness
+  anger        10      1      1     0     3
+  disgust       1     14      1     0     0
+  fear          1      1     11     0     2
+  joy           2      1      0     9     3
+  sadness       0      0      0     2    13
+```
+
+A couple of honest observations from these numbers: `disgust` is the cleanest class (its
+vocabulary is the most distinctive), while `joy` has the lowest recall (0.60) and `sadness` the
+lowest precision (0.62) — several misses from other emotions get pulled into `sadness`, so it
+behaves a bit like a catch-all.
+
+### Limitations
+
+This is a **small, self-authored dataset built for demonstration**, not a production-grade or
+benchmarked model. A few caveats worth stating plainly:
+
+- 376 examples is tiny by ML standards, and the single 76-row test split makes the accuracy
+  figure noisy (roughly ±5%).
+- Because the examples lean on explicit emotion words, the model partly keys on that vocabulary;
+  on real-world text without obvious emotion cues it would score lower.
+- It is meant as a learning exercise and a point of comparison against Watson NLP, not as a
+  reliable general-purpose emotion classifier.
+
+### How to run it
+
+Retrain the model (prints the full accuracy / classification report / confusion matrix and
+re-saves `emotion_classifier.pkl`):
+
+```bash
+python ml_classifier/train_classifier.py
+```
+
+Use the trained model for inference:
+
+```python
+from ml_classifier.predict import predict_emotion
+
+predict_emotion("I am so thrilled and grateful today")
+# {
+#     "anger": 0.1556,
+#     "disgust": 0.0682,
+#     "fear": 0.1227,
+#     "joy": 0.5252,
+#     "sadness": 0.1283,
+#     "dominant_emotion": "joy"
+# }
+```
+
+---
+
 ## What I Learned
 
 - **Integrating an external REST API end to end** — constructing an authenticated `POST`
@@ -236,6 +340,13 @@ Expected result: **5 tests, all passing.**
   it into a Flask app with a query-parameter route and a small JavaScript front end.
 - **Writing deterministic unit tests** — using `unittest` to lock down the dominant-emotion
   behavior for each category so the core logic can be refactored with confidence.
+- **Training and evaluating a text classifier from scratch** — building a scikit-learn
+  TF-IDF pipeline, comparing LogisticRegression against Naive Bayes on a stratified split, and
+  reading precision/recall/f1 and a confusion matrix to understand *where* a model fails, not
+  just its headline accuracy.
+- **Comparing a custom model against a third-party NLP API** — designing the self-trained
+  classifier to return the same output shape as the Watson service so the two can be evaluated
+  side by side, and being honest about the trade-offs of a small, self-authored dataset.
 
 ---
 
