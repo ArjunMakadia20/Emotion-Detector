@@ -1,0 +1,15 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment variables
+.env
+
+# Test / build artifacts
+.pytest_cache/
+*.egg-info/
