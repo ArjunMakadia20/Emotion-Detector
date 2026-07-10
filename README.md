@@ -11,7 +11,7 @@ some text, the app sends it to IBM Watson NLP's **EmotionPredict** service, scor
 five emotions — anger, disgust, fear, joy, and sadness — and reports back both the individual
 scores and the single dominant emotion.
 
-It was built as the capstone project for IBM's *Developing AI Applications with Python and
+It was origianally built as the capstone project for IBM's *Developing AI Applications with Python and
 Flask* course (part of the IBM AI Engineering Professional Certificate on Coursera), but it's
 structured as a real, self-contained app: a reusable detection package, a Flask front end, a
 unit-test suite, and a graceful offline fallback for when the Watson endpoint can't be reached.
