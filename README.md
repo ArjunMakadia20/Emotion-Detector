@@ -120,8 +120,8 @@ EmotionDetection/
 
 ```bash
 # 1. Clone the repository
-git clone <your-repo-url>
-cd EmotionDetection
+git clone https://github.com/ArjunMakadia20/Emotion-Detector.git
+cd Emotion-Detector
 
 # 2. (Recommended) create and activate a virtual environment
 python -m venv venv
