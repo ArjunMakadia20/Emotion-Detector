@@ -5,13 +5,14 @@
 ![IBM Watson NLP](https://img.shields.io/badge/IBM%20Watson%20NLP-EmotionPredict-052FAD?logo=ibm&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-5%20passing-brightgreen)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue)
+![scikit-learn](https://img.shields.io/badge/scikit--learn-ML%20classifier-F7931E?logo=scikit-learn&logoColor=white)
 
 A small web application that reads a sentence and tells you the emotion behind it. You type
 some text, the app sends it to IBM Watson NLP's **EmotionPredict** service, scores it across
 five emotions — anger, disgust, fear, joy, and sadness — and reports back both the individual
 scores and the single dominant emotion.
 
-It was origianally built as the capstone project for IBM's *Developing AI Applications with Python and
+It was originally built as the capstone project for IBM's *Developing AI Applications with Python and
 Flask* course (part of the IBM AI Engineering Professional Certificate on Coursera), but it's
 structured as a real, self-contained app: a reusable detection package, a Flask front end, a
 unit-test suite, and a graceful offline fallback for when the Watson endpoint can't be reached.
